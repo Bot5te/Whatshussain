@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم مطعم أنتيكا</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans Arabic', sans-serif;
+      background: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
+      color: #1f2937;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .header {
+      background: linear-gradient(to right, #1e3a8a, #3b82f6);
+      color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+      transform: rotate(30deg);
+    }
+    .section {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    th, td {
+      padding: 16px;
+      text-align: right;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      background: #f9fafb;
+      font-weight: 700;
+      color: #374151;
+    }
+    td {
+      background: white;
+    }
+    .status-select {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      width: 100%;
+    }
+    .status-pending {
+      background-color: #fef3c7;
+      color: #d97706;
+    }
+    .status-preparing {
+      background-color: #dbeafe;
+      color: #2563eb;
+    }
+    .status-in-transit {
+      background-color: #d1fae5;
+      color: #059669;
+    }
+    .status-completed {
+      background-color: #d1d5db;
+      color: #4b5563;
+    }
+    .status-cancelled {
+      background-color: #fee2e2;
+      color: #ef4444;
+    }
+    .table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    select {
+      width: auto;
+      min-width: 200px;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #f9fafb;
+      transition: border-color 0.3s;
+    }
+    select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    button {
+      transition: all 0.3s ease;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    .error {
+      color: #ef4444;
+      font-size: 0.95rem;
+      margin-top: 8px;
+    }
+    .success {
+      color: #10b981;
+      font-size: 0.95rem;
+      margin-top: 8px;
+    }
+    .loading {
+      color: #6b7280;
+      font-size: 0.95rem;
+      margin-top: 8px;
+    }
+    .stars {
+      color: #f59e0b;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      h1 { font-size: 1.75rem; }
+      h2 { font-size: 1.5rem; }
+      th, td { padding: 12px; font-size: 0.95rem; }
+      button { padding: 8px 16px; font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="text-3xl md:text-4xl font-bold relative z-10">لوحة تحكم مطعم أنتيكا - فرع المستشفى العسكري</h1>
+    </header>
+
+    <!-- Orders Section -->
+    <section class="section">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl md:text-3xl font-semibold"><i class="fas fa-shopping-cart mr-3 text-blue-600"></i>إدارة الطلبات</h2>
+        <select id="orderStatusFilter" class="bg-white shadow-sm">
+          <option value="">جميع الطلبات</option>
+          <option value="بانتظار التأكيد">بانتظار التأكيد</option>
+          <option value="جاري التحضير">جاري التحضير</option>
+          <option value="في الطريق">في الطريق</option>
+          <option value="اكتمل">اكتمل</option>
+          <option value="ملغى">ملغى</option>
+        </select>
+      </div>
+      <div class="flex justify-end mb-4">
+        <button id="downloadArchivedBtn" class="bg-indigo-600 text-white hover:bg-indigo-700"><i class="fas fa-download mr-2"></i>تحميل الطلبات السابقة</button>
+      </div>
+      <div class="table-container">
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>رقم الطلب</th>
+              <th>الاسم</th>
+              <th>التفاصيل</th>
+              <th>المنطقة</th>
+              <th>الحالة</th>
+              <th>تاريخ الإنشاء</th>
+              <th>رقم الواتساب</th>
+              <th>رابط واتساب</th>
+              <th>تحديث</th>
+              <th>إلغاء</th>
+              <th>حذف</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="orderMessage" class="mt-4"></p>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="section">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl md:text-3xl font-semibold"><i class="fas fa-star mr-3 text-yellow-500"></i>تقييمات العملاء</h2>
+        <button id="fetchReviewsBtn" class="bg-green-600 text-white hover:bg-green-700"><i class="fas fa-sync-alt mr-2"></i>عرض التقييمات</button>
+      </div>
+      <div id="reviewStats" class="mb-6"></div>
+      <div class="table-container">
+        <table id="reviewsTable" style="display: none;">
+          <thead>
+            <tr>
+              <th>رقم التقييم</th>
+              <th>رقم الطلب</th>
+              <th>التقييم (نجوم)</th>
+              <th>الملاحظة</th>
+              <th>تاريخ التقييم</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="reviewMessage" class="mt-4"></p>
+    </section>
+  </div>
+
+  <script>
+    // Fetch and display orders
+    async function fetchOrders(status = '') {
+      const messageEl = document.getElementById('orderMessage');
+      messageEl.innerText = 'جاري تحميل الطلبات...';
+      messageEl.className = 'loading';
+      try {
+        const response = await fetch(`/api/orders${status ? `?status=${status}` : ''}`);
+        const data = await response.json();
+        const tbody = document.querySelector('#ordersTable tbody');
+        tbody.innerHTML = '';
+        data.orders.forEach(order => {
+          const row = document.createElement('tr');
+          let statusClass = '';
+          switch (order.status) {
+            case 'بانتظار التأكيد': statusClass = 'status-pending'; break;
+            case 'جاري التحضير': statusClass = 'status-preparing'; break;
+            case 'في الطريق': statusClass = 'status-in-transit'; break;
+            case 'اكتمل': statusClass = 'status-completed'; break;
+            case 'ملغى': statusClass = 'status-cancelled'; break;
+          }
+          row.innerHTML = `
+            <td>${order.id}</td>
+            <td>${order.name || '-'}</td>
+            <td>${order.details.replace(/\n/g, '<br>')}</td>
+            <td>${order.area}</td>
+            <td class="${statusClass}">
+              <select class="status-select" onchange="updateOrderStatus('${order.id}', this.value)">
+                <option value="بانتظار التأكيد" ${order.status === 'بانتظار التأكيد' ? 'selected' : ''}>بانتظار التأكيد</option>
+                <option value="جاري التحضير" ${order.status === 'جاري التحضير' ? 'selected' : ''}>جاري التحضير</option>
+                <option value="في الطريق" ${order.status === 'في الطريق' ? 'selected' : ''}>في الطريق</option>
+                <option value="اكتمل" ${order.status === 'اكتمل' ? 'selected' : ''}>اكتمل</option>
+                <option value="ملغى" ${order.status === 'ملغى' ? 'selected' : ''}>ملغى</option>
+              </select>
+            </td>
+            <td>${new Date(order.createdAt).toLocaleString('ar-EG')}</td>
+            <td>${order.status !== 'اكتمل' && order.status !== 'ملغى' ? order.whatsappNumber : '-'}</td>
+            <td>${order.whatsappLink && order.status !== 'اكتمل' && order.status !== 'ملغى' ? `<a href="${order.whatsappLink}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium"><i class="fas fa-external-link-alt mr-1"></i>محادثة واتساب</a>` : '-'}</td>
+            <td><button onclick="updateOrderStatus('${order.id}', this.closest('tr').querySelector('select').value)" class="bg-blue-600 text-white hover:bg-blue-700"><i class="fas fa-sync-alt mr-2"></i>تحديث</button></td>
+            <td><button onclick="cancelOrder('${order.id}')" class="bg-red-600 text-white hover:bg-red-700 ${order.status === 'اكتمل' || order.status === 'ملغى' ? 'opacity-50 cursor-not-allowed' : ''}" ${order.status === 'اكتمل' || order.status === 'ملغى' ? 'disabled' : ''}><i class="fas fa-ban mr-2"></i>إلغاء</button></td>
+            <td><button onclick="deleteOrder('${order.id}')" class="bg-red-800 text-white hover:bg-red-900"><i class="fas fa-trash mr-2"></i>حذف</button></td>
+          `;
+          tbody.appendChild(row);
+        });
+        messageEl.innerText = '';
+      } catch (error) {
+        messageEl.innerText = 'حدث خطأ أثناء تحميل الطلبات';
+        messageEl.className = 'error';
+      }
+    }
+
+    // Update order status
+    async function updateOrderStatus(orderId, status) {
+      const messageEl = document.getElementById('orderMessage');
+      if (!status) {
+        messageEl.innerText = 'يرجى اختيار حالة صالحة';
+        messageEl.className = 'error';
+        return;
+      }
+      messageEl.innerText = 'جاري تحديث الحالة...';
+      messageEl.className = 'loading';
+      try {
+        const response = await fetch(`/api/orders/${orderId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        const result = await response.json();
+        messageEl.innerText = result.success ? 'تم تحديث الحالة بنجاح' : result.error;
+        messageEl.className = result.success ? 'success' : 'error';
+        setTimeout(() => { messageEl.innerText = ''; }, 5000);
+        fetchOrders(document.getElementById('orderStatusFilter').value);
+      } catch (error) {
+        messageEl.innerText = 'حدث خطأ أثناء تحديث الحالة';
+        messageEl.className = 'error';
+      }
+    }
+
+    // Cancel order (sets status to 'ملغى')
+    async function cancelOrder(orderId) {
+      if (confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) {
+        await updateOrderStatus(orderId, 'ملغى');
+      }
+    }
+
+    // Delete order
+    async function deleteOrder(orderId) {
+      if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+        const messageEl = document.getElementById('orderMessage');
+        messageEl.innerText = 'جاري حذف الطلب...';
+        messageEl.className = 'loading';
+        try {
+          const response = await fetch(`/api/orders/${orderId}`, {
+            method: 'DELETE',
+          });
+          const result = await response.json();
+          messageEl.innerText = result.success ? 'تم حذف الطلب بنجاح' : result.error;
+          messageEl.className = result.success ? 'success' : 'error';
+          setTimeout(() => { messageEl.innerText = ''; }, 5000);
+          fetchOrders(document.getElementById('orderStatusFilter').value);
+        } catch (error) {
+          messageEl.innerText = 'حدث خطأ أثناء حذف الطلب';
+          messageEl.className = 'error';
+        }
+      }
+    }
+
+    // Download archived orders
+    async function downloadArchivedOrders() {
+      const messageEl = document.getElementById('orderMessage');
+      messageEl.innerText = 'جاري تحميل الطلبات السابقة...';
+      messageEl.className = 'loading';
+      try {
+        const response = await fetch('/api/archived_orders');
+        const data = await response.json();
+        const orders = data.orders.map(order => ({
+          ...order,
+          cleanArea: order.area.replace(/ ?[🏥🏗️🦷]/g, '') // Improved regex to handle optional space before emoji
+        }));
+
+        // Map English areas to Arabic
+        const englishToArabic = {
+          'Specialized Clinics': 'العيادات التخصصية',
+          'King Fahd Hospital Expansion': 'توسعة مستشفى الملك فهد',
+          'Dental Center': 'مركز طب الأسنان'
+        };
+
+        orders.forEach(order => {
+          order.area = englishToArabic[order.cleanArea] || order.cleanArea;
+        });
+
+        // Group orders by area
+        const areas = {
+          'مركز طب الأسنان': [],
+          'العيادات التخصصية': [],
+          'توسعة مستشفى الملك فهد': []
+        };
+        orders.forEach(order => {
+          if (areas[order.area]) {
+            areas[order.area].push(order);
+          }
+        });
+
+        // Sort orders in each area by date descending
+        Object.keys(areas).forEach(area => {
+          areas[area].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        });
+
+        // Area emojis
+        const areaEmojis = {
+          'مركز طب الأسنان': '🦷',
+          'العيادات التخصصية': '🏥',
+          'توسعة مستشفى الملك فهد': '🏗️'
+        };
+
+        // Build content
+        let content = '';
+
+        // Area sections in desired order
+        const areaOrder = ['مركز طب الأسنان', 'العيادات التخصصية', 'توسعة مستشفى الملك فهد'];
+        areaOrder.forEach(area => {
+          if (areas[area].length > 0) {
+            content += `${areaEmojis[area]} ${area}\n\n`;
+            areas[area].forEach((order, index) => {
+              const date = new Date(order.createdAt);
+              const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+              const whatsappNumber = '0' + order.customerJid.split('@')[0].slice(2);
+              content += `${index + 1}- التاريخ: ${formattedDate}\n`;
+              content += `Name: ${order.name || '-'}\n`;
+              content += `Phone: ${whatsappNumber}\n`;
+              content += `Number: ${order.id}\n\n`;
+            });
+            content += '---\n\n';
+          }
+        });
+
+        // Statistics
+        const totalOrders = orders.length;
+
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        const currentMonthOrders = orders.filter(order => {
+          const date = new Date(order.createdAt);
+          return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+        });
+        const thisMonthCount = currentMonthOrders.length;
+
+        const areaCounts = {
+          'العيادات التخصصية': areas['العيادات التخصصية'].length,
+          'توسعة مستشفى الملك فهد': areas['توسعة مستشفى الملك فهد'].length,
+          'مركز طب الأسنان': areas['مركز طب الأسنان'].length
+        };
+
+        content += '📊 الإحصائيات\n\n';
+        content += `العدد الكلي للطلبات: ${totalOrders}\n`;
+        content += `عدد طلبات هذا الشهر: ${thisMonthCount}\n`;
+        content += `عدد طلبات العيادات التخصصية: ${areaCounts['العيادات التخصصية']}\n`;
+        content += `عدد طلبات توسعة مستشفى الملك فهد: ${areaCounts['توسعة مستشفى الملك فهد']}\n`;
+        content += `عدد طلبات مركز طب الأسنان: ${areaCounts['مركز طب الأسنان']}\n\n`;
+        content += '---\n\n';
+
+        // Top customers this month (all, sorted by count desc)
+        const customerCounts = {};
+        currentMonthOrders.forEach(order => {
+          const whatsappNumber = '0' + order.customerJid.split('@')[0].slice(2);
+          const key = whatsappNumber;
+          if (!customerCounts[key]) {
+            customerCounts[key] = { phone: whatsappNumber, count: 0 };
+          }
+          customerCounts[key].count++;
+        });
+
+        const topCustomers = Object.values(customerCounts)
+          .sort((a, b) => b.count - a.count);
+
+        content += '📱 أكثر الأشخاص طلبًا هذا الشهر\n\n';
+        topCustomers.forEach(cust => {
+          content += `${cust.phone} → ${cust.count} طلبات\n`;
+        });
+
+        // Create blob
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'archived_orders.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+        messageEl.innerText = 'تم تحميل الطلبات السابقة بنجاح';
+        messageEl.className = 'success';
+        setTimeout(() => { messageEl.innerText = ''; }, 5000);
+      } catch (error) {
+        messageEl.innerText = 'حدث خطأ أثناء تحميل الطلبات السابقة';
+        messageEl.className = 'error';
+      }
+    }
+
+    // Fetch and display reviews
+    async function fetchReviews() {
+      const messageEl = document.getElementById('reviewMessage');
+      messageEl.innerText = 'جاري تحميل التقييمات...';
+      messageEl.className = 'loading';
+      try {
+        const response = await fetch('/api/reviews');
+        const data = await response.json();
+        const tbody = document.querySelector('#reviewsTable tbody');
+        tbody.innerHTML = '';
+        data.reviews.forEach(review => {
+          const stars = '★'.repeat(review.rating) + '☆'.repeat(4 - review.rating);
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${review.id}</td>
+            <td>${review.orderId || '-'}</td>
+            <td><span class="stars">${stars}</span> (${review.rating}/4)</td>
+            <td>${review.feedback ? review.feedback.replace(/\n/g, '<br>') : 'لا يوجد'}</td>
+            <td>${new Date(review.createdAt).toLocaleString('ar-EG')}</td>
+          `;
+          tbody.appendChild(row);
+        });
+        document.getElementById('reviewsTable').style.display = 'table';
+        messageEl.innerText = '';
+
+        // Calculate and display review statistics
+        const totalReviews = data.reviews.length;
+        const reviewStatsEl = document.getElementById('reviewStats');
+        if (totalReviews === 0) {
+          reviewStatsEl.innerHTML = '<p class="text-gray-600">لا توجد تقييمات حالياً.</p>';
+        } else {
+          let counts = {1: 0, 2: 0, 3: 0, 4: 0};
+          let sum = 0;
+          data.reviews.forEach(review => {
+            counts[review.rating]++;
+            sum += review.rating;
+          });
+          let average = (sum / totalReviews).toFixed(2);
+          let statsHTML = `
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
+              <h3 class="text-xl font-bold mb-4 text-gray-800">إحصائيات التقييمات</h3>
+              <p class="mb-2"><span class="font-semibold">متوسط التقييم:</span> ${average} / 4</p>
+              <p class="mb-2"><span class="font-semibold">4 نجوم 🌟:</span> ${counts[4]} شخص (${((counts[4] / totalReviews) * 100).toFixed(2)}%)</p>
+              <p class="mb-2"><span class="font-semibold">3 نجوم:</span> ${counts[3]} شخص (${((counts[3] / totalReviews) * 100).toFixed(2)}%)</p>
+              <p class="mb-2"><span class="font-semibold">2 نجوم:</span> ${counts[2]} شخص (${((counts[2] / totalReviews) * 100).toFixed(2)}%)</p>
+              <p class="mb-2"><span class="font-semibold">1 نجمة:</span> ${counts[1]} شخص (${((counts[1] / totalReviews) * 100).toFixed(2)}%)</p>
+            </div>
+          `;
+          reviewStatsEl.innerHTML = statsHTML;
+        }
+
+      } catch (error) {
+        messageEl.innerText = 'حدث خطأ أثناء تحميل التقييمات';
+        messageEl.className = 'error';
+      }
+    }
+
+    // Event listeners
+    document.getElementById('orderStatusFilter').addEventListener('change', (e) => fetchOrders(e.target.value));
+    document.getElementById('downloadArchivedBtn').addEventListener('click', downloadArchivedOrders);
+    document.getElementById('fetchReviewsBtn').addEventListener('click', fetchReviews);
+    window.onload = () => {
+      fetchOrders();
+    };
+  </script>
+</body>
+</html>
